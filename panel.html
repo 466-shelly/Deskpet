@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:;" />
+  <title>Deskpet 设置</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #6ee7ff;
+      --accent2: #a78bfa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px 22px 28px;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    section h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0b1220;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .range-value {
+      min-width: 48px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0f172a;
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: var(--text);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .preview-box {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0b1220;
+      overflow: hidden;
+    }
+
+    .preview-box video,
+    .preview-box img {
+      max-width: 100%;
+      max-height: 160px;
+      object-fit: contain;
+    }
+
+    .preview-placeholder {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .media-path {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      padding: 10px 18px;
+      background: #14532d;
+      color: #bbf7d0;
+      border-radius: 999px;
+      font-size: 13px;
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      background: #7f1d1d;
+      color: #fecaca;
+    }
+
+    footer {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <h1>Deskpet 设置</h1>
+  <p class="subtitle">修改后点击保存，桌宠窗口将实时更新，无需重启。</p>
+
+  <section>
+    <h2>媒体素材</h2>
+    <p class="hint">支持 webp、webm、mp4、mov、gif。文件会复制到应用数据目录，原文件删除不影响桌宠。</p>
+    <div class="btn-row">
+      <button type="button" class="btn btn-secondary" id="btn-pick">选择本地文件</button>
+      <button type="button" class="btn btn-secondary" id="btn-reset-media">恢复默认占位</button>
+    </div>
+    <div class="preview-box" id="preview-box">
+      <span class="preview-placeholder">暂无预览</span>
+    </div>
+    <div class="media-path" id="media-path-label"></div>
+  </section>
+
+  <section>
+    <h2>尺寸</h2>
+    <label for="width-range">宽度 (px)</label>
+    <div class="range-row">
+      <input type="range" id="width-range" min="80" max="600" step="10" value="200" />
+      <span class="range-value" id="width-value">200</span>
+    </div>
+    <label for="height-range" style="margin-top: 12px;">高度 (px)</label>
+    <div class="range-row">
+      <input type="range" id="height-range" min="80" max="600" step="10" value="200" />
+      <span class="range-value" id="height-value">200</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>互动按钮</h2>
+    <label for="button-text">按钮文字</label>
+    <input type="text" id="button-text" placeholder="互动" maxlength="20" />
+  </section>
+
+  <section>
+    <h2>回应语料</h2>
+    <label for="responses">每行一条，点击互动时随机抽取</label>
+    <textarea id="responses" placeholder="你好呀！&#10;今天也要加油哦~"></textarea>
+  </section>
+
+  <section>
+    <h2>闲置提示语</h2>
+    <label for="idle-messages">每行一条，用于占位与底部提示</label>
+    <textarea id="idle-messages" placeholder="右键打开设置面板"></textarea>
+  </section>
+
+  <div class="btn-row">
+    <button type="button" class="btn btn-primary" id="btn-save">保存并应用到桌宠</button>
+  </div>
+
+  <footer>配置保存在 userData/config.json</footer>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const path = require('path');
+
+    const btnPick = document.getElementById('btn-pick');
+    const btnResetMedia = document.getElementById('btn-reset-media');
+    const btnSave = document.getElementById('btn-save');
+    const previewBox = document.getElementById('preview-box');
+    const mediaPathLabel = document.getElementById('media-path-label');
+    const widthRange = document.getElementById('width-range');
+    const heightRange = document.getElementById('height-range');
+    const widthValue = document.getElementById('width-value');
+    const heightValue = document.getElementById('height-value');
+    const buttonText = document.getElementById('button-text');
+    const responsesEl = document.getElementById('responses');
+    const idleMessagesEl = document.getElementById('idle-messages');
+    const toast = document.getElementById('toast');
+
+    let currentConfig = null;
+    let toastTimer = null;
+
+    function showToast(msg, isError) {
+      toast.textContent = msg;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function linesToArray(text) {
+      return text
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    function arrayToLines(arr) {
+      return (arr || []).join('\n');
+    }
+
+    function fileSrc(p) {
+      if (!p) return '';
+      if (p.startsWith('file:')) return p;
+      return 'file:///' + p.replace(/\\/g, '/');
+    }
+
+    function isDefaultMedia(p) {
+      return !p || p.includes('default.svg');
+    }
+
+    function renderPreview(cfg) {
+      previewBox.innerHTML = '';
+      mediaPathLabel.textContent = cfg.mediaPath
+        ? '当前素材: ' + cfg.mediaPath
+        : '当前: 内置默认占位';
+
+      if (isDefaultMedia(cfg.mediaPath)) {
+        const span = document.createElement('span');
+        span.className = 'preview-placeholder';
+        span.textContent = '内置 SVG 占位形象';
+        previewBox.appendChild(span);
+        return;
+      }
+
+      const src = fileSrc(cfg.mediaPath);
+      if (cfg.mediaType === 'video') {
+        const v = document.createElement('video');
+        v.src = src;
+        v.autoplay = true;
+        v.loop = true;
+        v.muted = true;
+        v.playsInline = true;
+        previewBox.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'preview';
+        previewBox.appendChild(img);
+      }
+    }
+
+    function fillForm(cfg) {
+      currentConfig = cfg;
+      widthRange.value = cfg.width || 200;
+      heightRange.value = cfg.height || 200;
+      widthValue.textContent = widthRange.value;
+      heightValue.textContent = heightRange.value;
+      buttonText.value = cfg.buttonText || '互动';
+      responsesEl.value = arrayToLines(cfg.responses);
+      idleMessagesEl.value = arrayToLines(cfg.idleMessages);
+      renderPreview(cfg);
+    }
+
+    function collectForm() {
+      return {
+        width: clampSize(parseInt(widthRange.value, 10)),
+        height: clampSize(parseInt(heightRange.value, 10)),
+        buttonText: buttonText.value.trim() || '互动',
+        responses: linesToArray(responsesEl.value),
+        idleMessages: linesToArray(idleMessagesEl.value),
+        mediaPath: currentConfig ? currentConfig.mediaPath : '',
+        mediaType: currentConfig ? currentConfig.mediaType : 'image',
+      };
+    }
+
+    function clampSize(n) {
+      if (Number.isNaN(n)) return 200;
+      return Math.min(600, Math.max(80, n));
+    }
+
+    widthRange.addEventListener('input', () => {
+      widthValue.textContent = widthRange.value;
+    });
+
+    heightRange.addEventListener('input', () => {
+      heightValue.textContent = heightRange.value;
+    });
+
+    btnPick.addEventListener('click', async () => {
+      try {
+        const result = await ipcRenderer.invoke('pick-media-file');
+        if (result.canceled) return;
+        if (!result.ok) {
+          showToast(result.error || '上传失败', true);
+          return;
+        }
+        currentConfig = result.config;
+        fillForm(result.config);
+        showToast('素材已导入并保存');
+      } catch (err) {
+        showToast('选择文件失败: ' + err.message, true);
+      }
+    });
+
+    btnResetMedia.addEventListener('click', async () => {
+      try {
+        const defaultPath = path.join(__dirname, 'assets', 'default.svg');
+        const payload = {
+          ...collectForm(),
+          mediaPath: defaultPath,
+          mediaType: 'image',
+        };
+        const result = await ipcRenderer.invoke('save-config', payload);
+        if (result.ok) {
+          fillForm(result.config);
+          showToast('已恢复默认占位');
+        } else {
+          showToast(result.error || '恢复失败', true);
+        }
+      } catch (err) {
+        showToast('恢复失败: ' + err.message, true);
+      }
+    });
+
+    btnSave.addEventListener('click', async () => {
+      try {
+        const payload = collectForm();
+        const result = await ipcRenderer.invoke('save-config', payload);
+        if (result.ok) {
+          fillForm(result.config);
+          showToast('已保存，桌宠已更新');
+        } else {
+          showToast(result.error || '保存失败', true);
+        }
+      } catch (err) {
+        showToast('保存失败: ' + err.message, true);
+      }
+    });
+
+    ipcRenderer.invoke('get-config')
+      .then(fillForm)
+      .catch((err) => showToast('加载配置失败: ' + err.message, true));
+  </script>
+</body>
+</html>
