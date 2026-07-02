@@ -6,13 +6,13 @@
   <title>Deskpet 设置</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --border: #334155;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --accent: #6ee7ff;
-      --accent2: #a78bfa;
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --text: #111111;
+      --text-secondary: #333333;
+      --muted: #666666;
+      --border: #111111;
+      --border-light: #cccccc;
     }
 
     * {
@@ -21,82 +21,108 @@
 
     body {
       margin: 0;
-      padding: 20px 22px 28px;
+      padding: 24px 26px 32px;
       font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
       background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
     }
 
     h1 {
-      margin: 0 0 4px;
+      margin: 0 0 6px;
       font-size: 22px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text);
     }
 
     .subtitle {
-      margin: 0 0 20px;
+      margin: 0 0 24px;
       color: var(--muted);
       font-size: 13px;
     }
 
+    /* 设置区块：黑色实线边框划分 */
     section {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 14px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      padding: 18px 18px 16px;
+      margin-bottom: 16px;
     }
 
     section h2 {
-      margin: 0 0 12px;
-      font-size: 14px;
-      color: var(--accent);
+      margin: 0 0 14px;
+      padding-bottom: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
     }
 
     label {
       display: block;
       font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
     }
 
     input[type="text"],
-    textarea {
+    textarea,
+    input[type="time"],
+    input[type="datetime-local"] {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #0b1220;
+      border-radius: 0;
+      background: var(--surface);
       color: var(--text);
       font-size: 13px;
       font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    input[type="time"]:focus,
+    input[type="datetime-local"]:focus {
+      outline: none;
+      border-width: 2px;
+      padding: 9px 11px;
+    }
+
+    input[type="text"]::placeholder,
+    textarea::placeholder {
+      color: #999999;
     }
 
     textarea {
-      min-height: 88px;
+      min-height: 96px;
       resize: vertical;
     }
 
     input[type="range"] {
       width: 100%;
-      accent-color: var(--accent);
+      accent-color: var(--border);
+      cursor: pointer;
     }
 
     .range-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .range-value {
       min-width: 48px;
       text-align: right;
       font-size: 13px;
-      color: var(--accent);
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
     }
 
     .btn {
@@ -105,45 +131,51 @@
       justify-content: center;
       gap: 6px;
       padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
+      border: 1px solid var(--border);
+      border-radius: 0;
+      background: var(--surface);
+      color: var(--text);
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.15s, opacity 0.15s;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--border);
+      color: #ffffff;
     }
 
     .btn:active {
-      transform: scale(0.98);
+      opacity: 0.88;
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #0f172a;
+      border-width: 2px;
+      font-weight: 700;
     }
 
     .btn-secondary {
-      background: #334155;
-      color: var(--text);
+      background: var(--surface);
     }
 
     .btn-row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 8px;
+      margin-top: 10px;
     }
 
+    /* 预览区：虚线边框 */
     .preview-box {
-      margin-top: 12px;
-      padding: 12px;
+      margin-top: 14px;
+      padding: 16px;
       border: 1px dashed var(--border);
-      border-radius: 8px;
       min-height: 120px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0b1220;
+      background: var(--bg);
       overflow: hidden;
     }
 
@@ -160,31 +192,125 @@
       text-align: center;
     }
 
+    .media-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+
+    .media-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      font-size: 12px;
+      cursor: grab;
+    }
+
+    .media-item:active {
+      cursor: grabbing;
+    }
+
+    .media-item.dragging {
+      opacity: 0.45;
+      background: var(--bg);
+    }
+
+    .media-item.drag-over {
+      background: #eeeeee;
+      box-shadow: inset 0 0 0 2px var(--border);
+    }
+
+    .media-item.is-default {
+      background: #f5f5f5;
+    }
+
+    .media-drag-handle {
+      flex-shrink: 0;
+      width: 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1;
+      user-select: none;
+      cursor: grab;
+    }
+
+    .media-default-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .media-item:last-child {
+      border-bottom: none;
+    }
+
+    .media-item-name {
+      flex: 1;
+      word-break: break-all;
+      color: var(--text-secondary);
+    }
+
+    .media-item-type {
+      color: var(--text);
+      font-weight: 600;
+      flex-shrink: 0;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    .btn-small {
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+
+    .btn-danger {
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .btn-danger:hover {
+      background: var(--border);
+      color: #ffffff;
+    }
+
     .media-path {
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 11px;
       color: var(--muted);
-      word-break: break-all;
     }
 
     .hint {
-      margin-top: 6px;
-      font-size: 11px;
+      margin: 0 0 4px;
+      font-size: 12px;
       color: var(--muted);
+      line-height: 1.5;
     }
 
     .toast {
       position: fixed;
-      bottom: 20px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(80px);
-      padding: 10px 18px;
-      background: #14532d;
-      color: #bbf7d0;
-      border-radius: 999px;
+      padding: 10px 20px;
+      background: var(--surface);
+      color: var(--text);
+      border: 2px solid var(--border);
       font-size: 13px;
+      font-weight: 600;
       opacity: 0;
-      transition: transform 0.3s, opacity 0.3s;
+      transition: transform 0.25s, opacity 0.25s;
       pointer-events: none;
       z-index: 100;
     }
@@ -195,15 +321,98 @@
     }
 
     .toast.error {
-      background: #7f1d1d;
-      color: #fecaca;
+      background: var(--border);
+      color: #ffffff;
+      border-color: var(--border);
     }
 
     footer {
-      margin-top: 8px;
+      margin-top: 12px;
       text-align: center;
       font-size: 11px;
       color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+
+    .save-bar {
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 2px solid var(--border);
+    }
+
+    .schedule-form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--border);
+      cursor: pointer;
+    }
+
+    .schedule-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+
+    .schedule-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      font-size: 12px;
+    }
+
+    .schedule-item:last-child {
+      border-bottom: none;
+    }
+
+    .schedule-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .schedule-item-title {
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .schedule-item-meta {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .schedule-empty {
+      padding: 14px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--border-light);
+      margin-top: 14px;
     }
   </style>
 </head>
@@ -212,20 +421,22 @@
   <p class="subtitle">修改后点击保存，桌宠窗口将实时更新，无需重启。</p>
 
   <section>
-    <h2>媒体素材</h2>
-    <p class="hint">支持 webp、webm、mp4、mov、gif。文件会复制到应用数据目录，原文件删除不影响桌宠。</p>
+    <h2>媒体素材（多状态）</h2>
+    <p class="hint">支持 webp、webm、mp4、mov、gif。可多选上传；拖拽列表项调整顺序，<strong>第一位为桌宠默认素材</strong>。每隔 2~5 分钟自动随机切换状态。</p>
     <div class="btn-row">
-      <button type="button" class="btn btn-secondary" id="btn-pick">选择本地文件</button>
+      <button type="button" class="btn btn-secondary" id="btn-pick">添加本地素材</button>
       <button type="button" class="btn btn-secondary" id="btn-reset-media">恢复默认占位</button>
     </div>
     <div class="preview-box" id="preview-box">
       <span class="preview-placeholder">暂无预览</span>
     </div>
+    <div class="media-list" id="media-list"></div>
     <div class="media-path" id="media-path-label"></div>
   </section>
 
   <section>
     <h2>尺寸</h2>
+    <p class="hint">宽高仅控制动画/视频区域；窗口会自动加高 36px、加宽 40px 以容纳底部提醒文字。</p>
     <label for="width-range">宽度 (px)</label>
     <div class="range-row">
       <input type="range" id="width-range" min="80" max="600" step="10" value="200" />
@@ -256,7 +467,30 @@
     <textarea id="idle-messages" placeholder="右键打开设置面板"></textarea>
   </section>
 
-  <div class="btn-row">
+  <section>
+    <h2>日程提醒</h2>
+    <p class="hint">选择具体日期与时间；保存后，桌宠会在目标时间<strong>前 10 分钟内</strong>于下方弹出提醒（例如 14:30 的日程，约 14:20~14:30 之间触发）。</p>
+    <div class="schedule-form-row">
+      <div>
+        <label for="schedule-title">事项名称</label>
+        <input type="text" id="schedule-title" placeholder="例如：团队周会" maxlength="40" />
+      </div>
+      <div>
+        <label for="schedule-datetime">日期与时间</label>
+        <input type="datetime-local" id="schedule-datetime" required />
+      </div>
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="schedule-repeat" checked />
+      <span>每日重复</span>
+    </label>
+    <div class="btn-row">
+      <button type="button" class="btn btn-secondary" id="btn-add-schedule">添加日程</button>
+    </div>
+    <div class="schedule-list" id="schedule-list"></div>
+  </section>
+
+  <div class="btn-row save-bar">
     <button type="button" class="btn btn-primary" id="btn-save">保存并应用到桌宠</button>
   </div>
 
@@ -271,6 +505,7 @@
     const btnResetMedia = document.getElementById('btn-reset-media');
     const btnSave = document.getElementById('btn-save');
     const previewBox = document.getElementById('preview-box');
+    const mediaListEl = document.getElementById('media-list');
     const mediaPathLabel = document.getElementById('media-path-label');
     const widthRange = document.getElementById('width-range');
     const heightRange = document.getElementById('height-range');
@@ -279,10 +514,17 @@
     const buttonText = document.getElementById('button-text');
     const responsesEl = document.getElementById('responses');
     const idleMessagesEl = document.getElementById('idle-messages');
+    const scheduleTitleEl = document.getElementById('schedule-title');
+    const scheduleDatetimeEl = document.getElementById('schedule-datetime');
+    const scheduleRepeatEl = document.getElementById('schedule-repeat');
+    const scheduleListEl = document.getElementById('schedule-list');
+    const btnAddSchedule = document.getElementById('btn-add-schedule');
     const toast = document.getElementById('toast');
 
     let currentConfig = null;
     let toastTimer = null;
+    let mediaDragFromIndex = null;
+    let localSchedules = [];
 
     function showToast(msg, isError) {
       toast.textContent = msg;
@@ -308,17 +550,149 @@
       return 'file:///' + p.replace(/\\/g, '/');
     }
 
-    function isDefaultMedia(p) {
-      return !p || p.includes('default.svg');
+    function getMediaItems(cfg) {
+      if (Array.isArray(cfg.mediaItems) && cfg.mediaItems.length) return cfg.mediaItems;
+      if (cfg.mediaPath) return [{ path: cfg.mediaPath, type: cfg.mediaType || 'image' }];
+      return [];
+    }
+
+    function isDefaultMediaItem(item) {
+      return item && item.path && item.path.includes('default.svg');
+    }
+
+    function fileNameFromPath(p) {
+      if (!p) return '';
+      return p.split(/[/\\]/).pop();
+    }
+
+    function renderMediaList(cfg) {
+      mediaListEl.innerHTML = '';
+      const items = getMediaItems(cfg);
+      if (!items.length) return;
+
+      items.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'media-item' + (index === 0 ? ' is-default' : '');
+        row.draggable = true;
+        row.dataset.index = String(index);
+
+        const handle = document.createElement('span');
+        handle.className = 'media-drag-handle';
+        handle.textContent = '⋮⋮';
+        handle.title = '拖拽排序';
+
+        const name = document.createElement('span');
+        name.className = 'media-item-name';
+        name.textContent = `${index + 1}. ${fileNameFromPath(item.path)}`;
+
+        const type = document.createElement('span');
+        type.className = 'media-item-type';
+        type.textContent = item.type === 'video' ? '视频' : '图片';
+
+        row.appendChild(handle);
+        row.appendChild(name);
+        row.appendChild(type);
+
+        if (index === 0) {
+          const badge = document.createElement('span');
+          badge.className = 'media-default-badge';
+          badge.textContent = '默认';
+          row.appendChild(badge);
+        }
+
+        if (!isDefaultMediaItem(item)) {
+          const btnDel = document.createElement('button');
+          btnDel.type = 'button';
+          btnDel.className = 'btn btn-small btn-danger';
+          btnDel.textContent = '删除';
+          btnDel.addEventListener('click', async (ev) => {
+            ev.stopPropagation();
+            try {
+              const result = await ipcRenderer.invoke('remove-media-item', index);
+              if (result.ok) {
+                currentConfig = result.config;
+                fillForm(result.config);
+                showToast('已删除素材');
+              } else {
+                showToast(result.error || '删除失败', true);
+              }
+            } catch (err) {
+              showToast('删除失败: ' + err.message, true);
+            }
+          });
+          row.appendChild(btnDel);
+        }
+
+        bindMediaItemDrag(row, index);
+        mediaListEl.appendChild(row);
+      });
+
+      mediaPathLabel.textContent = `共 ${items.length} 个状态素材 · 拖拽调整顺序后自动保存`;
+    }
+
+    /** HTML5 原生拖拽排序，完成后 IPC 写入 config.json */
+    function bindMediaItemDrag(row, index) {
+      row.addEventListener('dragstart', (e) => {
+        mediaDragFromIndex = index;
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(index));
+      });
+
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        mediaDragFromIndex = null;
+        mediaListEl.querySelectorAll('.media-item').forEach((el) => {
+          el.classList.remove('drag-over');
+        });
+      });
+
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        row.classList.add('drag-over');
+      });
+
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over');
+      });
+
+      row.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const from = mediaDragFromIndex;
+        const to = index;
+        if (from === null || from === to) return;
+        await persistMediaReorder(from, to);
+      });
+    }
+
+    async function persistMediaReorder(fromIndex, toIndex) {
+      const items = getMediaItems(currentConfig).map((i) => ({ ...i }));
+      const [moved] = items.splice(fromIndex, 1);
+      items.splice(toIndex, 0, moved);
+
+      try {
+        const payload = { ...collectForm(), mediaItems: items };
+        const result = await ipcRenderer.invoke('save-config', payload);
+        if (result.ok) {
+          currentConfig = result.config;
+          fillForm(result.config);
+          showToast('排序已保存，首位为默认素材');
+        } else {
+          showToast(result.error || '保存排序失败', true);
+        }
+      } catch (err) {
+        showToast('保存排序失败: ' + err.message, true);
+      }
     }
 
     function renderPreview(cfg) {
       previewBox.innerHTML = '';
-      mediaPathLabel.textContent = cfg.mediaPath
-        ? '当前素材: ' + cfg.mediaPath
-        : '当前: 内置默认占位';
+      const items = getMediaItems(cfg);
+      const first = items[0];
 
-      if (isDefaultMedia(cfg.mediaPath)) {
+      if (!first || isDefaultMediaItem(first)) {
         const span = document.createElement('span');
         span.className = 'preview-placeholder';
         span.textContent = '内置 SVG 占位形象';
@@ -326,8 +700,8 @@
         return;
       }
 
-      const src = fileSrc(cfg.mediaPath);
-      if (cfg.mediaType === 'video') {
+      const src = fileSrc(first.path);
+      if (first.type === 'video') {
         const v = document.createElement('video');
         v.src = src;
         v.autoplay = true;
@@ -343,6 +717,69 @@
       }
     }
 
+    function createScheduleId() {
+      return `sched_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function formatRepeatLabel(repeatDaily) {
+      return repeatDaily ? '每日重复' : '仅一次';
+    }
+
+    function formatScheduleTimestamp(timestamp) {
+      const d = new Date(timestamp);
+      if (Number.isNaN(d.getTime())) return '无效时间';
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function toDatetimeLocalValue(date) {
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function renderScheduleList() {
+      scheduleListEl.innerHTML = '';
+      if (!localSchedules.length) {
+        const empty = document.createElement('div');
+        empty.className = 'schedule-empty';
+        empty.textContent = '暂无日程，添加后请点击下方「保存并应用到桌宠」';
+        scheduleListEl.appendChild(empty);
+        return;
+      }
+
+      localSchedules.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'schedule-item';
+
+        const info = document.createElement('div');
+        info.className = 'schedule-item-info';
+
+        const title = document.createElement('div');
+        title.className = 'schedule-item-title';
+        title.textContent = item.title;
+
+        const meta = document.createElement('div');
+        meta.className = 'schedule-item-meta';
+        meta.textContent = `${formatScheduleTimestamp(item.timestamp)} · ${formatRepeatLabel(item.repeatDaily)}`;
+
+        info.appendChild(title);
+        info.appendChild(meta);
+
+        const btnDel = document.createElement('button');
+        btnDel.type = 'button';
+        btnDel.className = 'btn btn-small btn-danger';
+        btnDel.textContent = '删除';
+        btnDel.addEventListener('click', () => {
+          localSchedules.splice(index, 1);
+          renderScheduleList();
+        });
+
+        row.appendChild(info);
+        row.appendChild(btnDel);
+        scheduleListEl.appendChild(row);
+      });
+    }
+
     function fillForm(cfg) {
       currentConfig = cfg;
       widthRange.value = cfg.width || 200;
@@ -352,18 +789,29 @@
       buttonText.value = cfg.buttonText || '互动';
       responsesEl.value = arrayToLines(cfg.responses);
       idleMessagesEl.value = arrayToLines(cfg.idleMessages);
+      localSchedules = Array.isArray(cfg.schedules)
+        ? cfg.schedules.map((item) => ({ ...item }))
+        : [];
       renderPreview(cfg);
+      renderMediaList(cfg);
+      renderScheduleList();
     }
 
     function collectForm() {
+      const items = currentConfig ? getMediaItems(currentConfig).map((i) => ({ ...i })) : [];
       return {
         width: clampSize(parseInt(widthRange.value, 10)),
         height: clampSize(parseInt(heightRange.value, 10)),
         buttonText: buttonText.value.trim() || '互动',
         responses: linesToArray(responsesEl.value),
         idleMessages: linesToArray(idleMessagesEl.value),
-        mediaPath: currentConfig ? currentConfig.mediaPath : '',
-        mediaType: currentConfig ? currentConfig.mediaType : 'image',
+        mediaItems: items,
+        schedules: localSchedules.map(({ id, title, timestamp, repeatDaily }) => ({
+          id,
+          title,
+          timestamp,
+          repeatDaily,
+        })),
       };
     }
 
@@ -390,7 +838,7 @@
         }
         currentConfig = result.config;
         fillForm(result.config);
-        showToast('素材已导入并保存');
+        showToast(`已添加 ${result.added.length} 个素材`);
       } catch (err) {
         showToast('选择文件失败: ' + err.message, true);
       }
@@ -401,8 +849,7 @@
         const defaultPath = path.join(__dirname, 'assets', 'default.svg');
         const payload = {
           ...collectForm(),
-          mediaPath: defaultPath,
-          mediaType: 'image',
+          mediaItems: [{ path: defaultPath, type: 'image' }],
         };
         const result = await ipcRenderer.invoke('save-config', payload);
         if (result.ok) {
@@ -414,6 +861,36 @@
       } catch (err) {
         showToast('恢复失败: ' + err.message, true);
       }
+    });
+
+    btnAddSchedule.addEventListener('click', () => {
+      const title = scheduleTitleEl.value.trim();
+      const datetimeValue = scheduleDatetimeEl.value;
+      if (!title) {
+        showToast('请填写事项名称', true);
+        return;
+      }
+      if (!datetimeValue) {
+        showToast('请选择日期与时间', true);
+        return;
+      }
+
+      const timestamp = new Date(datetimeValue).getTime();
+      if (Number.isNaN(timestamp)) {
+        showToast('日期时间格式无效', true);
+        return;
+      }
+
+      localSchedules.push({
+        id: createScheduleId(),
+        title,
+        timestamp,
+        repeatDaily: scheduleRepeatEl.checked,
+      });
+      scheduleTitleEl.value = '';
+      scheduleDatetimeEl.value = '';
+      renderScheduleList();
+      showToast('已添加日程，记得点击保存');
     });
 
     btnSave.addEventListener('click', async () => {
@@ -432,7 +909,11 @@
     });
 
     ipcRenderer.invoke('get-config')
-      .then(fillForm)
+      .then((cfg) => {
+        fillForm(cfg);
+        const defaultDatetime = new Date(Date.now() + 15 * 60 * 1000);
+        scheduleDatetimeEl.value = toDatetimeLocalValue(defaultDatetime);
+      })
       .catch((err) => showToast('加载配置失败: ' + err.message, true));
   </script>
 </body>

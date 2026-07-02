@@ -20,6 +20,9 @@ const ALLOWED_EXT = ['.webp', '.webm', '.mp4', '.mov', '.gif'];
 const CONFIG_NAME = 'config.json';
 const MEDIA_DIR_NAME = 'media';
 const FULLSCREEN_POLL_MS = 1500;
+/** 窗口为底部提醒文字额外增加的区域（与 pet.html 保持一致） */
+const SCHEDULE_REMINDER_BAND_PX = 36;
+const SCHEDULE_REMINDER_EXTRA_WIDTH_PX = 40;
 
 let petWindow = null;
 let panelWindow = null;
@@ -29,6 +32,11 @@ let isOtherAppFullscreen = false;
 let userDismissedPet = false;
 let hiddenByFullscreen = false;
 let wasVisibleBeforeFullscreen = false;
+let scheduleWatchTimer = null;
+let lastSchedulesConfigKey = '';
+const scheduleTriggeredKeys = new Set();
+
+const SCHEDULE_CHECK_MS = 10 * 1000;
 
 /** 可选依赖：npm install active-win（需 VS 构建工具；未安装时 Windows 走 PowerShell 回退） */
 let activeWinModule = null;
@@ -51,7 +59,9 @@ function getMediaDir() {
 
 function getDefaultConfig() {
   const defaultMedia = path.join(__dirname, 'assets', 'default.svg');
+  const defaultItem = { path: defaultMedia, type: 'image' };
   return {
+    mediaItems: [defaultItem],
     mediaPath: defaultMedia,
     mediaType: 'image',
     buttonText: '互动',
@@ -66,7 +76,101 @@ function getDefaultConfig() {
     width: 200,
     height: 200,
     showIdleHint: true,
+    schedules: [],
   };
+}
+
+function inferMediaType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (['.webm', '.mp4', '.mov'].includes(ext)) return 'video';
+  return 'image';
+}
+
+/** 归一化媒体列表，兼容旧版单一 mediaPath 字段 */
+function normalizeMediaItems(cfg) {
+  if (Array.isArray(cfg.mediaItems) && cfg.mediaItems.length > 0) {
+    return cfg.mediaItems
+      .filter((item) => item && item.path)
+      .map((item) => ({
+        path: item.path,
+        type: item.type || inferMediaType(item.path),
+      }));
+  }
+  if (cfg.mediaPath) {
+    return [{ path: cfg.mediaPath, type: cfg.mediaType || inferMediaType(cfg.mediaPath) }];
+  }
+  const def = getDefaultConfig().mediaItems[0];
+  return [def];
+}
+
+function normalizeStringArray(value, fallback) {
+  if (!Array.isArray(value)) return [...fallback];
+  return value.map((s) => String(s).trim()).filter(Boolean);
+}
+
+function normalizeTimeString(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return '';
+  const hours = Math.min(23, Math.max(0, parseInt(match[1], 10)));
+  const minutes = Math.min(59, Math.max(0, parseInt(match[2], 10)));
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+/** 归一化日程提醒列表（以毫秒时间戳存储，兼容旧版 time 字符串） */
+function legacyTimeToNextTimestamp(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map((v) => parseInt(v, 10));
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+  if (target.getTime() <= now.getTime()) {
+    target.setDate(target.getDate() + 1);
+  }
+  return target.getTime();
+}
+
+function normalizeSchedules(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item) => item && item.title)
+    .map((item) => {
+      let timestamp = Number(item.timestamp);
+      if (!Number.isFinite(timestamp) || timestamp <= 0) {
+        const timeStr = normalizeTimeString(item.time);
+        timestamp = timeStr ? legacyTimeToNextTimestamp(timeStr) : 0;
+      }
+      return {
+        id: String(item.id || `sched_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+        title: String(item.title).trim(),
+        timestamp: Math.round(timestamp),
+        repeatDaily: Boolean(item.repeatDaily),
+      };
+    })
+    .filter((item) => item.title && item.timestamp > 0);
+}
+
+/** 统一配置结构，确保数组字段为全新副本（修复语料热重载残留） */
+function normalizeConfig(raw) {
+  const base = getDefaultConfig();
+  const merged = { ...base, ...raw };
+
+  merged.responses = normalizeStringArray(
+    raw.responses !== undefined ? raw.responses : merged.responses,
+    base.responses
+  );
+  merged.idleMessages = normalizeStringArray(
+    raw.idleMessages !== undefined ? raw.idleMessages : merged.idleMessages,
+    base.idleMessages
+  );
+  merged.schedules = normalizeSchedules(
+    raw.schedules !== undefined ? raw.schedules : merged.schedules
+  );
+  merged.mediaItems = normalizeMediaItems(merged);
+  merged.mediaPath = merged.mediaItems[0].path;
+  merged.mediaType = merged.mediaItems[0].type;
+  merged.width = clampSize(merged.width);
+  merged.height = clampSize(merged.height);
+  merged.buttonText = String(merged.buttonText || base.buttonText).trim() || base.buttonText;
+
+  return merged;
 }
 
 function readConfig() {
@@ -75,12 +179,12 @@ function readConfig() {
     if (fs.existsSync(configPath)) {
       const raw = fs.readFileSync(configPath, 'utf-8');
       const parsed = JSON.parse(raw);
-      return { ...getDefaultConfig(), ...parsed };
+      return normalizeConfig(parsed);
     }
   } catch (err) {
     console.error('[Deskpet] readConfig failed:', err.message);
   }
-  const defaults = getDefaultConfig();
+  const defaults = normalizeConfig(getDefaultConfig());
   writeConfig(defaults);
   return defaults;
 }
@@ -88,8 +192,9 @@ function readConfig() {
 function writeConfig(config) {
   const configPath = getConfigPath();
   try {
+    const normalized = normalizeConfig(config);
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    fs.writeFileSync(configPath, JSON.stringify(normalized, null, 2), 'utf-8');
     return true;
   } catch (err) {
     console.error('[Deskpet] writeConfig failed:', err.message);
@@ -106,30 +211,95 @@ function ensureMediaDir() {
 }
 
 function broadcastConfigToPet(config) {
-  if (petWindow && !petWindow.isDestroyed()) {
-    petWindow.webContents.send('config-updated', config);
+  if (!petWindow || petWindow.isDestroyed()) return;
+
+  const payload = normalizeConfig(config || readConfig());
+  syncScheduleTriggerCache(payload);
+  petWindow.webContents.send('config-updated', payload);
+  checkSchedulesInMain();
+}
+
+/** 日程配置变更时重置已触发缓存，避免旧状态阻止新提醒 */
+function syncScheduleTriggerCache(config) {
+  const key = JSON.stringify(
+    (config.schedules || []).map((item) => `${item.id}:${item.timestamp}`)
+  );
+  if (key !== lastSchedulesConfigKey) {
+    scheduleTriggeredKeys.clear();
+    lastSchedulesConfigKey = key;
   }
+}
+
+/** 主进程定时检测日程（避免渲染进程被 Electron 节流导致漏触发） */
+function checkSchedulesInMain() {
+  const config = readConfig();
+  const schedules = Array.isArray(config.schedules) ? config.schedules : [];
+  if (!schedules.length) return;
+
+  const now = Date.now();
+
+  for (const item of schedules) {
+    const triggerKey = `${item.id}:${item.timestamp}`;
+    if (scheduleTriggeredKeys.has(triggerKey)) continue;
+
+    const timestamp = Number(item.timestamp);
+    if (!Number.isFinite(timestamp)) continue;
+
+    const diffMinutes = (timestamp - now) / 60000;
+
+    // 核心判断：距离指定时间还剩不到 10 分钟，且尚未过期
+    if (diffMinutes > 0 && diffMinutes <= 10) {
+      scheduleTriggeredKeys.add(triggerKey);
+      if (petWindow && !petWindow.isDestroyed()) {
+        petWindow.webContents.send('schedule-reminder', item);
+      }
+      break;
+    }
+  }
+}
+
+function startScheduleWatcher() {
+  clearInterval(scheduleWatchTimer);
+  scheduleWatchTimer = setInterval(checkSchedulesInMain, SCHEDULE_CHECK_MS);
+  checkSchedulesInMain();
+}
+
+function stopScheduleWatcher() {
+  if (scheduleWatchTimer) {
+    clearInterval(scheduleWatchTimer);
+    scheduleWatchTimer = null;
+  }
+}
+
+function getPetWindowSize(config) {
+  const mediaWidth = clampSize(config.width);
+  const mediaHeight = clampSize(config.height);
+  return {
+    width: mediaWidth + SCHEDULE_REMINDER_EXTRA_WIDTH_PX,
+    mediaWidth,
+    mediaHeight,
+    height: mediaHeight + SCHEDULE_REMINDER_BAND_PX,
+  };
 }
 
 /** 将配置中的宽高应用到桌宠窗口，并广播给渲染进程 */
 function applyPetWindowSize(config) {
   if (!petWindow || petWindow.isDestroyed()) return config;
 
-  const width = clampSize(config.width);
-  const height = clampSize(config.height);
+  const { width, mediaWidth, mediaHeight, height: windowHeight } = getPetWindowSize(config);
   const bounds = petWindow.getBounds();
-  const nextBounds = { x: bounds.x, y: bounds.y, width, height };
+  const nextBounds = { x: bounds.x, y: bounds.y, width, height: windowHeight };
 
   // 使用 setBounds 而非 setSize，避免 frameless + resizable:false 在 Windows 上尺寸不更新
   petWindow.setBounds(nextBounds, false);
 
   const workArea = getWorkAreaForWindow(petWindow);
-  const snapped = clampToWorkArea(nextBounds.x, nextBounds.y, width, height, workArea);
+  const snapped = clampToWorkArea(nextBounds.x, nextBounds.y, width, windowHeight, workArea);
   if (snapped.x !== nextBounds.x || snapped.y !== nextBounds.y) {
     petWindow.setPosition(snapped.x, snapped.y);
   }
 
-  const normalized = { ...config, width, height };
+  const normalized = normalizeConfig({ ...config, width: mediaWidth, height: mediaHeight });
   broadcastConfigToPet(normalized);
   return normalized;
 }
@@ -189,10 +359,11 @@ function createTrayIcon() {
 
 function createPetWindow() {
   const config = readConfig();
+  const { width, height } = getPetWindowSize(config);
 
   petWindow = new BrowserWindow({
-    width: config.width,
-    height: config.height,
+    width,
+    height,
     frame: false,
     transparent: true,
     // Windows 透明窗口需显式 alpha 背景，否则鼠标命中/拖拽易失效
@@ -206,6 +377,7 @@ function createPetWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      backgroundThrottling: false,
     },
   });
 
@@ -295,37 +467,51 @@ function createTray() {
   tray.rebuildMenu = rebuildMenu;
 }
 
-function getWorkAreaForWindow(win) {
+function getDisplayForWindow(win) {
   if (!win || win.isDestroyed()) {
-    return screen.getPrimaryDisplay().workArea;
+    return screen.getPrimaryDisplay();
   }
-  const bounds = win.getBounds();
-  const display = screen.getDisplayNearestPoint({
-    x: bounds.x + Math.floor(bounds.width / 2),
-    y: bounds.y + Math.floor(bounds.height / 2),
-  });
-  return display.workArea;
+  return screen.getDisplayNearestPoint(win.getBounds());
 }
 
-function clampToWorkArea(x, y, width, height, workArea) {
-  let clampedX = x;
-  let clampedY = y;
+function getWorkAreaForWindow(win) {
+  return getDisplayForWindow(win).workArea;
+}
 
-  if (width >= workArea.width) {
-    clampedX = workArea.x;
-  } else {
-    const maxX = workArea.x + workArea.width - width;
-    clampedX = Math.min(Math.max(x, workArea.x), maxX);
+/**
+ * 将窗口位置钳制在当前显示器工作区内（屏幕绝对坐标，兼容 DPI 与多屏 workArea 偏移）
+ */
+function clampToWorkArea(x, y, winWidth, winHeight, workArea) {
+  const screenWidth = workArea.width;
+  const screenHeight = workArea.height;
+  const minX = workArea.x;
+  const minY = workArea.y;
+  const maxX = minX + screenWidth - winWidth;
+  const maxY = minY + screenHeight - winHeight;
+
+  let targetX = x;
+  let targetY = y;
+
+  if (winWidth >= screenWidth) {
+    targetX = minX;
+  } else if (x < minX) {
+    targetX = minX;
+  } else if (x > maxX) {
+    targetX = maxX;
   }
 
-  if (height >= workArea.height) {
-    clampedY = workArea.y;
-  } else {
-    const maxY = workArea.y + workArea.height - height;
-    clampedY = Math.min(Math.max(y, workArea.y), maxY);
+  if (winHeight >= screenHeight) {
+    targetY = minY;
+  } else if (y < minY) {
+    targetY = minY;
+  } else if (y > maxY) {
+    targetY = maxY;
   }
 
-  return { x: clampedX, y: clampedY };
+  return {
+    x: Math.round(targetX),
+    y: Math.round(targetY),
+  };
 }
 
 /** 检测当前前台窗口是否为「其他应用」的全屏窗口 */
@@ -436,12 +622,7 @@ function registerIpc() {
   ipcMain.handle('save-config', (_event, partial) => {
     try {
       const current = readConfig();
-      const next = {
-        ...current,
-        ...partial,
-        width: clampSize(partial.width ?? current.width),
-        height: clampSize(partial.height ?? current.height),
-      };
+      const next = normalizeConfig({ ...current, ...partial });
       const ok = writeConfig(next);
       if (ok) {
         const applied = applyPetWindowSize(next);
@@ -457,24 +638,68 @@ function registerIpc() {
 
   ipcMain.handle('pick-media-file', async () => {
     const result = await dialog.showOpenDialog({
-      title: '选择桌宠素材',
+      title: '选择桌宠素材（可多选）',
       filters: [
         {
           name: '媒体文件',
           extensions: ['webp', 'webm', 'mp4', 'mov', 'gif'],
         },
       ],
-      properties: ['openFile'],
+      properties: ['openFile', 'multiSelections'],
     });
     if (result.canceled || !result.filePaths.length) {
       return { ok: false, canceled: true };
     }
-    return copyMediaFile(result.filePaths[0]);
+    return addMediaFiles(result.filePaths);
   });
 
   ipcMain.handle('copy-media-file', (_event, sourcePath) => {
     if (!sourcePath) return { ok: false, error: '无效路径' };
-    return copyMediaFile(sourcePath);
+    return addMediaFiles([sourcePath], { replace: true });
+  });
+
+  /** 从列表中移除指定索引的状态素材 */
+  ipcMain.handle('remove-media-item', (_event, index) => {
+    try {
+      const config = readConfig();
+      const items = [...config.mediaItems];
+      if (index < 0 || index >= items.length) {
+        return { ok: false, error: '索引无效' };
+      }
+      items.splice(index, 1);
+      if (items.length === 0) {
+        const def = getDefaultConfig().mediaItems[0];
+        items.push(def);
+      }
+      const next = normalizeConfig({ ...config, mediaItems: items });
+      writeConfig(next);
+      const applied = applyPetWindowSize(next);
+      return { ok: true, config: applied };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  /** 仅一次日程提醒结束后，从 config.json 移除对应项 */
+  ipcMain.handle('remove-schedule-item', (_event, scheduleId) => {
+    try {
+      const config = readConfig();
+      const id = String(scheduleId || '').trim();
+      if (!id) return { ok: false, error: '无效日程 ID' };
+
+      const schedules = config.schedules.filter((item) => item.id !== id);
+      if (schedules.length === config.schedules.length) {
+        return { ok: false, error: '日程不存在' };
+      }
+
+      const next = normalizeConfig({ ...config, schedules });
+      writeConfig(next);
+      syncScheduleTriggerCache(next);
+      broadcastConfigToPet(next);
+      return { ok: true, config: next };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
   });
 
   ipcMain.handle('get-screen-info', () => {
@@ -505,19 +730,34 @@ function registerIpc() {
 
   ipcMain.handle('snap-window-to-screen', () => {
     if (!petWindow || petWindow.isDestroyed()) return null;
+
     const bounds = petWindow.getBounds();
-    const workArea = getWorkAreaForWindow(petWindow);
+    const display = getDisplayForWindow(petWindow);
+    const workArea = display.workArea;
+    const winWidth = bounds.width;
+    const winHeight = bounds.height;
+
     const snapped = clampToWorkArea(
       bounds.x,
       bounds.y,
-      bounds.width,
-      bounds.height,
+      winWidth,
+      winHeight,
       workArea
     );
+
+    const needsSnap = snapped.x !== bounds.x || snapped.y !== bounds.y;
+
     return {
-      from: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
+      from: {
+        x: bounds.x,
+        y: bounds.y,
+        width: winWidth,
+        height: winHeight,
+      },
       to: snapped,
       workArea,
+      workAreaSize: display.workAreaSize,
+      needsSnap,
     };
   });
 
@@ -535,31 +775,52 @@ function registerIpc() {
   ipcMain.handle('get-media-dir', () => getMediaDir());
 }
 
-function copyMediaFile(sourcePath) {
+function copyOneMediaFile(sourcePath) {
+  const ext = path.extname(sourcePath).toLowerCase();
+  if (!ALLOWED_EXT.includes(ext)) {
+    throw new Error(`不支持的格式: ${ext}`);
+  }
+  ensureMediaDir();
+  const fileName = `pet_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const destPath = path.join(getMediaDir(), fileName);
+  fs.copyFileSync(sourcePath, destPath);
+  return { path: destPath, type: inferMediaType(destPath) };
+}
+
+/** 复制多个素材到 userData/media 并追加到 mediaItems */
+function addMediaFiles(sourcePaths, { replace = false } = {}) {
   try {
-    const ext = path.extname(sourcePath).toLowerCase();
-    if (!ALLOWED_EXT.includes(ext)) {
-      return { ok: false, error: `不支持的格式: ${ext}` };
-    }
-    ensureMediaDir();
-    const fileName = `pet_${Date.now()}${ext}`;
-    const destPath = path.join(getMediaDir(), fileName);
-    fs.copyFileSync(sourcePath, destPath);
-
-    let mediaType = 'image';
-    if (['.webm', '.mp4', '.mov'].includes(ext)) {
-      mediaType = 'video';
-    }
-
     const config = readConfig();
-    config.mediaPath = destPath;
-    config.mediaType = mediaType;
-    writeConfig(config);
-    const applied = applyPetWindowSize(config);
+    const added = [];
+    for (const sourcePath of sourcePaths) {
+      try {
+        added.push(copyOneMediaFile(sourcePath));
+      } catch (err) {
+        console.error('[Deskpet] skip file:', sourcePath, err.message);
+      }
+    }
+    if (!added.length) {
+      return { ok: false, error: '没有成功导入的文件' };
+    }
 
-    return { ok: true, mediaPath: destPath, mediaType, config: applied };
+    const isDefaultOnly = (items) =>
+      items.length === 1 && items[0].path.includes('default.svg');
+
+    let mediaItems;
+    if (replace) {
+      mediaItems = added;
+    } else if (isDefaultOnly(config.mediaItems)) {
+      mediaItems = added;
+    } else {
+      mediaItems = [...config.mediaItems, ...added];
+    }
+
+    const next = normalizeConfig({ ...config, mediaItems });
+    writeConfig(next);
+    const applied = applyPetWindowSize(next);
+    return { ok: true, added, config: applied };
   } catch (err) {
-    console.error('[Deskpet] copyMediaFile failed:', err.message);
+    console.error('[Deskpet] addMediaFiles failed:', err.message);
     return { ok: false, error: err.message };
   }
 }
@@ -570,10 +831,12 @@ app.whenReady().then(() => {
   createPetWindow();
   createTray();
   startFullscreenWatcher();
+  startScheduleWatcher();
 });
 
 app.on('before-quit', () => {
   stopFullscreenWatcher();
+  stopScheduleWatcher();
 });
 
 app.on('window-all-closed', () => {
